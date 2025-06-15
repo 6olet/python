@@ -1,0 +1,69 @@
+# ---------------- GUI 코드 ----------------
+
+team1WinCount = 0 #우세 요소 개수 확인을 위한 변수 초기화
+team2WinCount = 0
+
+#함수명: run_prediction
+#Win()함수, predict()함수에서 return받은 값과 홈, 원정 경기 판단을 통해 승부 예측을 수행하는 함수
+#매개변수: team1, team2, pitcher1, pitcher2, game_date 각각 우리팀, 상대팀, 우리팀 투수, 상대팀 투수, 경기 날짜
+#return은 없음
+def run_prediction():
+    global team1WinCount, team2WinCount # 함수 외부의 변수를 함수 내부에서 사용하기 위해 선언 
+    team1WinCount = 0
+    team2WinCount = 0
+
+    team1 = entry_team1.get().strip() #선행 및 후행 공백 제거를 위한 strip() 사용
+    team2 = entry_team2.get().strip() 
+    pitcher1 = entry_pitcher1.get().strip()
+    pitcher2 = entry_pitcher2.get().strip()
+    game_date = entry_date.get().strip()
+
+    if team1 not in team or team2 not in team: # 입력받은 팀 이름이 존재하는지 확인
+        messagebox.showerror("입력 오류", "존재하지 않는 팀 이름입니다.") 
+        return
+
+    if pitcher1 not in team[team1] or pitcher2 not in team[team2]: # 입력받은 투수 이름이 해당 팀에 존재하는지 확인
+        messagebox.showerror("입력 오류", "선수 이름이 팀에 존재하지 않습니다.")
+        return
+
+    p1 = {"stats": team[team1][pitcher1]} 
+    p2 = {"stats": team[team2][pitcher2]}
+    score1, score2 = win(p1, p2)  # 투수 성적 비교 값을 return받음
+
+    if score1 > score2:
+        result_text = f"{pitcher1} 우세" # 투수 성적 비교 결과
+        team1WinCount += 1 #우리팀 투수가 우세하면 우리팀 우세 요소 개수 증가
+    elif score1 < score2:
+        result_text = f"{pitcher2} 우세" # 투수 성적 비교 결과
+        team2WinCount += 1 #상대팀 투수가 우세하면 상대팀 우세 요소 개수 증가
+    else:
+        result_text = "투수 성적 동률" # 투수 성적 비교 결과
+
+    location_text = "경기 정보 없음" # 경기 일정 정보 초기화
+    for game in game_data:
+        #우리팀과 상대팀이 입력받은 경기날짜에 경기를 하는지 확인
+        if game["date"] == game_date and (
+            (game["team1"] == team1 and game["team2"] == team2) or
+            (game["team1"] == team2 and game["team2"] == team1)
+        ):
+            loc = game["location"]  # 경기장소 저장
+            is_home = HOME_STADIUMS.get(team1) == loc # 우리팀이 홈경기인지 확인
+            home_away = "홈" if is_home else "원정" # 경기장소에 따라 홈 또는 원정으로 표시
+            location_text = f"{team1} 팀은 {game_date}에 {team2} 팀과 {home_away}경기" # 경기 일정 정보 
+            if is_home:
+                team1WinCount += 1 # 우리팀이 홈경기일 경우 우리팀 우세 요소 개수 증가
+            else:
+                team2WinCount += 1 # 상대팀이 홈경기일 경우 상대팀 우세 요소 개수 증가
+            break
+    result_vs_text, winner_code = predict(team1, team2) # 팀간 상대전적으로 우세 예측 결과 저장
+    if winner_code == 1: #winner_code가 1이면 team1이 우세
+        team1WinCount += 1  # 우리팀 우세 요소 개수 증가
+    elif winner_code == 2: #winner_code가 2이면 team2가 우세
+        team2WinCount += 1 # 상대팀 우세 요소 개수 증가
+
+    if team1WinCount > team2WinCount: #최종 우세요소 개수 비교
+        final = f"{team1} 우세"         # 우리팀 우세 요소 개수가 상대팀보다 많으면 우리팀 우세
+    elif team2WinCount > team1WinCount:  #최종 우세요소 개수 비교
+        final = f"{team2} 우세"        # 상대팀 우세 요소 개수가 우리팀보다 많으면 상대팀 우세
+    else:
+        final = f"{team1}와 {team2}는 동률" 
